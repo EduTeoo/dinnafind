@@ -1,17 +1,8 @@
 import { Icon, Slider } from '@rneui/themed';
-import React, { useEffect } from 'react';
-import {
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
-import { useGeofencing } from '@/hooks/useGeofencing';
-import GeofencingService from '@/services/GeofencingService';
+import React from 'react';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+
+// Removed: import GeofencingService from '@/services/GeofencingService';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
   selectMasterNotificationsEnabled,
@@ -25,63 +16,14 @@ import { BucketListItem } from '@/models/bucket-list';
 
 export function AlertsScreen() {
   const dispatch = useAppDispatch();
-  const { error, isInitialized } = useGeofencing();
   const bucketListItems = useAppSelector(state => state.bucketList.items);
   const masterEnabled = useAppSelector(selectMasterNotificationsEnabled);
   const distanceMiles = useAppSelector(selectDistanceMiles);
 
-  useEffect(() => {
-    if (error) {
-      Alert.alert('Location Permission Required', error);
-    }
-  }, [error]);
-
-  // Fix type error: ensure bucketListItems is typed, or use type guard
-  const restaurantsWithNotificationsEnabled = bucketListItems.filter(
-    (item: any) => item.notificationsEnabled === true
-  );
-
+  // Removed all geofence logic from handleMasterToggle
   const handleMasterToggle = async (value: boolean) => {
     dispatch(setMasterNotificationsEnabled(value));
-
-    // Always rebuild geofences based on current state
-    await GeofencingService.removeAllGeofences();
-
-    if (value) {
-      // Master ON: Track ALL restaurants with notifications enabled
-      for (const restaurant of bucketListItems as BucketListItem[]) {
-        if (
-          restaurant.venue &&
-          restaurant.venue.coordinates &&
-          typeof restaurant.venue.coordinates.latitude === 'number' &&
-          typeof restaurant.venue.coordinates.longitude === 'number'
-        ) {
-          await GeofencingService.addGeofence({
-            id: restaurant.id,
-            name: restaurant.venue.name,
-            latitude: restaurant.venue.coordinates.latitude,
-            longitude: restaurant.venue.coordinates.longitude,
-          });
-        }
-      }
-    } else {
-      // Master OFF: Still track individually enabled restaurants
-      for (const restaurant of restaurantsWithNotificationsEnabled as BucketListItem[]) {
-        if (
-          restaurant.venue &&
-          restaurant.venue.coordinates &&
-          typeof restaurant.venue.coordinates.latitude === 'number' &&
-          typeof restaurant.venue.coordinates.longitude === 'number'
-        ) {
-          await GeofencingService.addGeofence({
-            id: restaurant.id,
-            name: restaurant.venue.name,
-            latitude: restaurant.venue.coordinates.latitude,
-            longitude: restaurant.venue.coordinates.longitude,
-          });
-        }
-      }
-    }
+    // No geofence add/remove here
   };
 
   const restaurantsWithLocation = bucketListItems.filter((item: BucketListItem) => {
@@ -145,7 +87,7 @@ export function AlertsScreen() {
           />
         </View>
 
-        {restaurantsWithLocation.length === 0 && isInitialized && (
+        {restaurantsWithLocation.length === 0 && (
           <View style={styles.emptyStateCard}>
             <Icon name="location-off" type="material" size={48} color={theme.colors.grey3} />
             <Text style={styles.emptyStateTitle}>No Restaurants to Track</Text>
@@ -203,16 +145,7 @@ export function AlertsScreen() {
                       value={restaurant.notificationsEnabled === true}
                       onValueChange={enabled => {
                         dispatch(setNotificationEnabled({ id: restaurant.id as string, enabled }));
-                        if (enabled) {
-                          GeofencingService.addGeofence({
-                            id: restaurant.id as string,
-                            name,
-                            latitude: restaurant.venue?.coordinates?.latitude ?? 0,
-                            longitude: restaurant.venue?.coordinates?.longitude ?? 0,
-                          });
-                        } else {
-                          GeofencingService.removeGeofence(restaurant.id as string);
-                        }
+                        // No geofence add/remove here
                       }}
                       trackColor={{
                         false: theme.colors.grey4,

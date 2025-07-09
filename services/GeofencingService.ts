@@ -3,7 +3,10 @@ import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import { getDistance, getDistanceString } from '../utils/distanceUtils';
-const NOTIFICATION_COOLDOWN = 15000; // 2.5 minutes in milliseconds
+import { GeofencingEvent } from '@/store/slices/geofencingSlice';
+import { store } from '@/store'; // Import the Redux store
+import { selectDistanceMiles } from '@/store/slices/bucketListSlice';
+const NOTIFICATION_COOLDOWN = 500; // 2.5 minutes in milliseconds
 const GEOFENCE_TASK_NAME = 'DINNAFIND_GEOFENCE_TASK';
 export const GEOFENCE_RADIUS = 2000; // meters - reasonable walking distance
 const STORAGE_KEY = 'dinnafind_geofences';
@@ -64,7 +67,7 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }) => {
 
     try {
       const regionId = region.identifier || 'unknown';
-      console.log(`[Geofencing] Event: ${eventType} for region: ${regionId}`);
+      console.log(`[Geofencing] ⚡️ Event: ${eventType} for region: ${regionId}`);
 
       // Load geofences from storage to get restaurant details
       const storedData = await AsyncStorage.getItem(STORAGE_KEY);
@@ -77,7 +80,7 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }) => {
       const geofence = regions.find(r => r.id === region.identifier);
 
       if (!geofence) {
-        console.log(`[Geofencing] Geofence not found for region: ${regionId}`);
+        console.log(`[Geofencing] ⚠️ Geofence not found for region: ${regionId}`);
         return;
       }
 
@@ -95,7 +98,9 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }) => {
           typeof currentPosition.coords?.latitude !== 'number' ||
           typeof currentPosition.coords?.longitude !== 'number'
         ) {
-          console.log('[Geofencing] Could not get valid current position, skipping notification.');
+          console.log(
+            '[Geofencing] ⚠️ Could not get valid current position, skipping notification.'
+          );
           return;
         }
         const distance = getDistance(
@@ -104,9 +109,19 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }) => {
           geofence.latitude,
           geofence.longitude
         );
-        console.log(`[Geofencing] Distance: ${distance}`);
-
-        if (now - lastTime > NOTIFICATION_COOLDOWN) {
+        // Read distanceMiles from Redux
+        const state = store.getState();
+        const distanceMiles = state.bucketList?.distanceMiles ?? 1.25;
+        const withinDistance = distance <= distanceMiles;
+        console.log(
+          `🗺️[Geofencing] 📏 Distance: ${distance} miles, Alert Distance: ${distanceMiles} miles`
+        );
+        if (withinDistance) {
+          console.log('🟢 [Geofencing] Within alert distance!');
+        } else {
+          console.log('🔴 [Geofencing] Outside alert distance.');
+        }
+        if (withinDistance && now - lastTime > NOTIFICATION_COOLDOWN) {
           // 5 minute cooldown
           await Notifications.scheduleNotificationAsync({
             content: {
@@ -131,20 +146,26 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }) => {
 
           // Store the time of this notification
           await AsyncStorage.setItem(`last_notification_${geofence.id}`, now.toString());
-          console.log(`[Geofencing] Notification sent for: ${geofence.restaurantName}`);
-        } else {
+          console.log(`🟢🔈[Geofencing] Notification sent for: ${geofence.restaurantName}`);
+        } else if (withinDistance) {
           console.log(
-            `[Geofencing] Skipping notification for ${geofence.restaurantName} - cooldown active`
+            `🟡 [Geofencing] Cooldown active, not sending notification for: ${geofence.restaurantName}`
           );
         }
       }
     } catch (error) {
-      console.error('[Geofencing] Failed to handle event:', error);
+      console.error('🔴[Geofencing] Failed to handle event:', error);
     }
   }
 });
 
 class GeofencingService {
+  subscribe(onEvent: (event: GeofencingEvent) => void, onError: (error: Error) => void) {
+    throw new Error('Method not implemented.');
+  }
+  unsubscribe(): void {
+    throw new Error('Method not implemented.');
+  }
   private static instance: GeofencingService;
   private activeRegions: Map<string, GeofenceRegion> = new Map();
   private isInitialized: boolean = false;
@@ -182,7 +203,7 @@ class GeofencingService {
     // Request notification permissions
     const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
     if (notificationStatus !== 'granted') {
-      console.warn('Notification permission not granted');
+      console.warn('🔴 Notification permission not granted');
     }
 
     // Configure notifications
@@ -199,7 +220,7 @@ class GeofencingService {
     if (!TaskManager.isTaskDefined(GEOFENCE_TASK_NAME)) {
       TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }) => {
         if (error) {
-          console.error('Geofence task error:', error);
+          console.error('🔴 Geofence task error:', error);
           return;
         }
 
@@ -305,7 +326,7 @@ class GeofencingService {
 
     // Double-check regions array is not empty
     if (regions.length === 0) {
-      console.log('No regions to monitor, stopping geofencing');
+      console.log(' No regions to monitor, stopping geofencing');
       await this.stopGeofencing();
       return;
     }
@@ -321,16 +342,16 @@ class GeofencingService {
         } catch (stopError: any) {
           // Ignore E_TASK_NOT_FOUND errors
           if (!stopError.message || !stopError.message.includes('E_TASK_NOT_FOUND')) {
-            console.error('Error stopping existing geofencing:', stopError);
+            console.error('🔴 Error stopping existing geofencing:', stopError);
           }
         }
       }
 
       // Start geofencing with new regions
       await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
-      console.log(`Started geofencing for ${regions.length} regions`);
+      console.log(`🟢 Started geofencing for ${regions.length} regions`);
     } catch (error) {
-      console.error('Failed to start geofencing:', error);
+      console.error('🔴 Failed to start geofencing:', error);
       throw error;
     }
   }
@@ -342,21 +363,21 @@ class GeofencingService {
         // Check if the task is actually running before trying to stop it
         try {
           await Location.stopGeofencingAsync(GEOFENCE_TASK_NAME);
-          console.log('Stopped geofencing');
+          console.log('🔴 Stopped geofencing');
         } catch (stopError: any) {
           // If the error is E_TASK_NOT_FOUND, it's not really an error
           if (stopError.message && stopError.message.includes('E_TASK_NOT_FOUND')) {
-            console.log('Geofencing task was not running');
+            console.log('🔴 Geofencing task was not running');
           } else {
             // Re-throw other errors
             throw stopError;
           }
         }
       } else {
-        console.log('No geofencing task registered');
+        console.log('🔴 No geofencing task registered');
       }
     } catch (error) {
-      console.error('Error checking geofencing task:', error);
+      console.error('🔴 Error checking geofencing task:', error);
     }
   }
 
@@ -367,7 +388,7 @@ class GeofencingService {
   ) {
     try {
       const regionId = region.identifier || 'unknown';
-      console.log(`[Geofencing] Event received: ${eventType} for region: ${regionId}`);
+      console.log(`🔈🔂[Geofencing] Event received: ${eventType} for region: ${regionId}`);
 
       // Load geofences from storage to get restaurant details
       const data = await AsyncStorage.getItem(STORAGE_KEY);
@@ -379,11 +400,11 @@ class GeofencingService {
       const regions: GeofenceRegion[] = JSON.parse(data);
       const geofence = regions.find(r => r.id === region.identifier);
       if (!geofence) {
-        console.log(`[Geofencing] Geofence not found for region: ${regionId}`);
+        console.log(`↪️[Geofencing] Geofence not found for region: ${regionId}`);
         return;
       }
 
-      console.log(`[Geofencing] Found geofence for restaurant: ${geofence.restaurantName}`);
+      console.log(`↪️[Geofencing] Found geofence for restaurant: ${geofence.restaurantName}`);
 
       // Only send notification for enter events
       if (eventType === Location.GeofencingEventType.Enter) {
@@ -394,7 +415,7 @@ class GeofencingService {
 
         if (now - lastTime > NOTIFICATION_COOLDOWN) {
           // 5 minute cooldown
-          console.log(`[Geofencing] Sending notification for: ${geofence.restaurantName}`);
+          console.log(`↪️ 🔈[Geofencing] Sending notification for: ${geofence.restaurantName}`);
           await Notifications.scheduleNotificationAsync({
             content: {
               title: getNotificationTitle(),
@@ -419,18 +440,18 @@ class GeofencingService {
           // Store the time of this notification
           await AsyncStorage.setItem(`last_notification_${geofence.id}`, now.toString());
           console.log(
-            `[Geofencing] Notification sent successfully for: ${geofence.restaurantName}`
+            `↪️ 🔈[Geofencing] Notification sent successfully for: ${geofence.restaurantName}`
           );
         } else {
           console.log(
-            `[Geofencing] Skipping notification for ${geofence.restaurantName} - cooldown active`
+            `⤵️ 🔈[Geofencing] Skipping notification for ${geofence.restaurantName} - cooldown active`
           );
         }
       } else {
-        console.log(`[Geofencing] Ignoring ${eventType} event for: ${geofence.restaurantName}`);
+        console.log(`⤵️[Geofencing] Ignoring ${eventType} event for: ${geofence.restaurantName}`);
       }
     } catch (error) {
-      console.error('[Geofencing] Failed to handle geofence event:', error);
+      console.error('🔴[Geofencing] Failed to handle geofence event:', error);
     }
   }
 
@@ -439,18 +460,22 @@ class GeofencingService {
     region: Location.LocationRegion
   ) {
     const regionId = region.identifier || 'unknown';
-    console.log(`[Geofencing] Foreground event received: ${eventType} for region: ${regionId}`);
+    console.log(`🔈↗️[Geofencing] Foreground event received: ${eventType} for region: ${regionId}`);
 
     const geofence = region.identifier ? this.activeRegions.get(region.identifier) : undefined;
     if (!geofence) {
-      console.log(`[Geofencing] No active geofence found for region: ${regionId}`);
+      console.log(`⤵️[Geofencing] No active geofence found for region: ${regionId}`);
       return;
     }
 
-    console.log(`[Geofencing] Found active geofence for restaurant: ${geofence.restaurantName}`);
+    console.log(
+      `🗺️↪️[Geofencing] Found active geofence for restaurant: ${geofence.restaurantName}`
+    );
 
     if (eventType === Location.GeofencingEventType.Enter) {
-      console.log(`[Geofencing] Sending foreground notification for: ${geofence.restaurantName}`);
+      console.log(
+        `↪️ 🔈[Geofencing] Sending foreground notification for: ${geofence.restaurantName}`
+      );
       await Notifications.scheduleNotificationAsync({
         content: {
           title: getNotificationTitle(),
@@ -471,10 +496,10 @@ class GeofencingService {
         },
         trigger: null, // immediate
       });
-      console.log(`[Geofencing] Foreground notification sent for: ${geofence.restaurantName}`);
+      console.log(`↗️ 🔈[Geofencing] Foreground notification sent for: ${geofence.restaurantName}`);
     } else {
       console.log(
-        `[Geofencing] Ignoring foreground ${eventType} event for: ${geofence.restaurantName}`
+        `⤵️ ↘️[Geofencing] Ignoring foreground ${eventType} event for: ${geofence.restaurantName}`
       );
     }
   }
@@ -492,10 +517,10 @@ class GeofencingService {
         regions.forEach(region => {
           this.activeRegions.set(region.id, region);
         });
-        console.log(`Loaded ${regions.length} geofences from storage`);
+        console.log(`↪️ 🔄[Geofencing] Loaded ${regions.length} geofences from storage`);
       }
     } catch (error) {
-      console.error('Failed to load geofences:', error);
+      console.error('🔴[Geofencing] Failed to load geofences:', error);
     }
   }
 
@@ -531,7 +556,7 @@ class GeofencingService {
   // Debug method to log current status
   async logStatus() {
     const status = await this.getStatus();
-    console.log('[Geofencing] Current Status:', JSON.stringify(status, null, 2));
+    console.log('🔄 ℹ[Geofencing] Current Status:', JSON.stringify(status, null, 2));
   }
 }
 

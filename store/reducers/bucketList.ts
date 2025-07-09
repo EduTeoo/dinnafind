@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { foursquareService } from '@/api/foursquare';
 import { type BucketListFilter, type BucketListItem } from '@/models/bucket-list';
-import { type RootState } from '@/index';
+import { type RootState } from '@/store';
 
 // Default mock user ID for development
 const MOCK_USER_ID = 'mock-user-1';
@@ -124,11 +124,11 @@ export const fetchBucketList = createAsyncThunk('bucketList/fetch', async (_, { 
   // Since we're using redux-persist, the items are already in state
   // We just need to enhance them with venue details if needed
   const items = state.bucketList.items;
-  console.log('Current items in state:', items);
+  console.log('Current items in state:', JSON.stringify(items, null, 4));
 
   // Enhance items with venue details if needed
   const enhancedItems = await enhanceBucketListWithVenueDetails(items);
-  console.log('Enhanced items with venue details:', enhancedItems);
+  console.log('Enhanced items with venue details:', JSON.stringify(enhancedItems, null, 4));
 
   return enhancedItems;
 });

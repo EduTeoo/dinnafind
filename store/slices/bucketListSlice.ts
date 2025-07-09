@@ -1,16 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { foursquareService } from '@/api/foursquare';
-import {
-  type BucketListItem,
-  type BucketListFilter,
-  type BucketListState,
-} from '@/models/bucket-list';
-import { RootState } from '@/index';
-import { Venue, VenueSearchResponse } from '@/models/venue';
-
-// Helper function to get storage key for a user
-const getStorageKey = (userId: string) => `bucketList_${userId}`;
+import { type BucketListItem, type BucketListFilter } from '@/models/bucket-list';
+import { RootState } from '@/store';
 
 // Helper function to get user ID from state
 const getUserId = (state: RootState): string => {
@@ -130,11 +121,11 @@ export const fetchBucketList = createAsyncThunk('bucketList/fetch', async (_, { 
   // Since we're using redux-persist, the items are already in state
   // We just need to enhance them with venue details if needed
   const items = state.bucketList.items;
-  console.log('Current items in state:', items);
+  console.log('Current items in state:', JSON.stringify(items, null, 4));
 
   // Enhance items with venue details if needed
   const enhancedItems = await enhanceBucketListWithVenueDetails(items);
-  console.log('Enhanced items with venue details:', enhancedItems);
+  console.log('Enhanced items with venue details:', JSON.stringify(enhancedItems, null, 4));
 
   return enhancedItems;
 });
