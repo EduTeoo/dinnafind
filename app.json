@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "DinnaFind",
+    "slug": "dinnafind",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "dinnafind",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dinnafind.app",
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "DinnaFind needs location access to show you nearby restaurants and send location-based alerts when you're near saved restaurants.",
+        "NSLocationWhenInUseUsageDescription": "DinnaFind needs location access to show you nearby restaurants and send location-based alerts when you're near saved restaurants.",
+        "UIBackgroundModes": ["location", "background-processing"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.dinnafind.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "DinnaFind needs location access to show you nearby restaurants and send location-based alerts when you're near saved restaurants.",
+          "locationAlwaysPermission": "DinnaFind needs background location access to send you alerts when you're near saved restaurants.",
+          "locationWhenInUsePermission": "DinnaFind needs location access to show you nearby restaurants and send location-based alerts when you're near saved restaurants.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/sounds/notification.wav"]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d1c32541-63ec-4e09-a186-72d013b4ec64"
+      }
+    },
+    "owner": "evanmeeks"
+  }
+}
