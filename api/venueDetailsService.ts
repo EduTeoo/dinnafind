@@ -4,14 +4,15 @@ export interface StandardizedVenueDetails {
   id: string;
   fsq_id: string;
   name: string;
-  categories: Array<{
+  iconUrl?: string;
+  categories: {
     id: string;
     name: string;
     icon?: {
       prefix?: string;
       suffix?: string;
     };
-  }>;
+  }[];
   location: {
     address?: string;
     city?: string;
@@ -33,14 +34,14 @@ export interface StandardizedVenueDetails {
       longitude?: number;
     };
   };
-  photos?: Array<{
+  photos?: {
     id: string;
     prefix?: string;
     suffix?: string;
     width?: number;
     height?: number;
     created_at?: string;
-  }>;
+  }[];
   rating?: number;
   ratingColor?: string;
   price?: {

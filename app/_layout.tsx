@@ -7,7 +7,7 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
 import { AuthProvider } from '@/contexts/AuthContext';
-import { persistor, store } from '@/hooks/redux';
+import { store, persistor } from '@/hooks/redux';
 import { useDeferredDeepLink, parseDeepLink } from '@/hooks/useDeferredDeepLink';
 import { useSimpleDeferredLink } from '@/hooks/useSimpleDeferredLink';
 

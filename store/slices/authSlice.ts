@@ -96,6 +96,10 @@ export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.
 export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.loading;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
 
+// Add a selector for display name
+export const selectDisplayName = (state: { auth: AuthState }) =>
+  state.auth.user?.displayName || state.auth.user?.email || 'Test User';
+
 // Export types for use in sagas and components
 export type LoginPayload = { email: string; password: string };
 export type LoginSuccessPayload = UserProfile;

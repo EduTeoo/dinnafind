@@ -17,16 +17,6 @@ export interface AuthState {
 }
 
 /**
- * User profile information
- */
-export interface UserProfile {
-  id: string;
-  email: string;
-  displayName?: string;
-  photoUrl?: string;
-}
-
-/**
  * UI state
  */
 export interface UIState {

@@ -151,10 +151,13 @@ export const SearchScreen: React.FC = () => {
       <TouchableOpacity
         style={styles.listItem}
         onPress={() => {
+          const iconPrefix = item.categories && item.categories[0]?.icon?.prefix;
+          const iconSuffix = item.categories && item.categories[0]?.icon?.suffix;
           router.push({
             pathname: '/detail',
             params: {
               venueId: item.id,
+              ...(iconPrefix && iconSuffix ? { iconPrefix, iconSuffix } : {}),
             },
           });
         }}

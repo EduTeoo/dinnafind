@@ -35,7 +35,7 @@ const rootReducer = {
 };
 
 // Create persisted reducer
-const persistedReducer = persistReducer(persistConfig, combineReducers(rootReducer));
+export const persistedReducer = persistReducer(persistConfig, combineReducers(rootReducer));
 
 // Setup saga middleware
 const sagaMiddleware = createSagaMiddleware();
@@ -101,24 +101,7 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // Development tools and debugging helpers
 if (__DEV__) {
-  // globalThis store access for debugging
-  (globalThis as any).store = store;
-  (globalThis as any).getState = () => store.getState();
-  (globalThis as any).dispatch = store.dispatch;
-
-  // Helper functions for bucket list debugging
-  (globalThis as any).getBucketList = () => store.getState().bucketList;
-  (globalThis as any).getAuth = () => store.getState().auth;
-  (globalThis as any).clearBucketList = () => {
-    const userId = store.getState().auth.user?.id || 'mock-user-1';
-    return AsyncStorage.removeItem(`bucketList_${userId}`);
-  };
-  (globalThis as any).viewAsyncStorage = async () => {
-    const keys = await AsyncStorage.getAllKeys();
-    const stores = await AsyncStorage.multiGet(keys);
-    console.log('AsyncStorage contents:', stores);
-    return stores;
-  };
+  // r
 
   // Action dispatchers for debugging
   (globalThis as any).debugActions = {
@@ -140,8 +123,4 @@ if (__DEV__) {
   console.log('📊 Initial State:', JSON.stringify(store.getState(), null, 4));
 
   // Subscribe to state changes for debugging
-  store.subscribe(() => {
-    const state = store.getState();
-    console.log('🔄 State updated - Bucket List items:', state.bucketList.items.length);
-  });
 }
